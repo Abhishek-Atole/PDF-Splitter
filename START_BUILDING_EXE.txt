@@ -48,7 +48,7 @@ Do you have a Windows PC available?
        git init
        git add .
        git commit -m "Initial commit"
-       git remote add origin https://github.com/YOUR_NAME/PDF-Splitter.git
+       https://github.com/Abhishek-Atole/PDF-Splitter.git
        git push -u origin main
     4. Go to Actions tab
     5. Wait 3-5 minutes

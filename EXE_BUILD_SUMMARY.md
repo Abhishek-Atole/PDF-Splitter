@@ -115,7 +115,7 @@ dist/
 git init
 git add .
 git commit -m "Initial commit"
-git remote add origin https://github.com/YOUR_NAME/PDF-Splitter.git
+https://github.com/Abhishek-Atole/PDF-Splitter.git
 git push -u origin main
 
 # 3. Enable Actions
