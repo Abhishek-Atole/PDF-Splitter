@@ -47,7 +47,7 @@ jobs:
           --windowed `
           --name ${{ matrix.output }} `
           --distpath ./dist `
-          --workpath ./build `
+          --workpath ./build_temp `
           --specpath ./build_specs `
           ${{ matrix.script }}
     
