@@ -86,3 +86,4 @@ deactivate
 **Created:** October 10, 2025  
 **Python Version:** 3.12.3  
 **Virtual Environment:** myenv_new
+# PDF-Splitter
