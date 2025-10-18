@@ -1,0 +1,131 @@
+name: Build Windows .exe Files
+
+on:
+  push:
+    branches: [ main, master, develop ]
+    paths:
+      - 'SPlitfile_*.py'
+      - '.github/workflows/build-windows.yml'
+  workflow_dispatch:  # Allow manual trigger
+  
+env:
+  PYTHON_VERSION: '3.12'
+
+jobs:
+  build-windows-exe:
+    runs-on: windows-latest
+    
+    strategy:
+      matrix:
+        include:
+          - name: "Responsive"
+            script: "SPlitfile_responsive.py"
+            output: "PDFSplitter_Responsive"
+          - name: "Original"
+            script: "SPlitfile_fixed.py"
+            output: "PDFSplitter_Original"
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+    
+    - name: 🐍 Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        cache: 'pip'
+    
+    - name: 📦 Install dependencies
+      run: |
+        python -m pip install --upgrade pip setuptools wheel
+        pip install PyPDF2 pdf2image Pillow customtkinter pyinstaller
+    
+    - name: 🏗️ Build ${{ matrix.name }} version
+      run: |
+        pyinstaller `
+          --onefile `
+          --windowed `
+          --name ${{ matrix.output }} `
+          --distpath ./dist `
+          --workpath ./build `
+          --specpath ./build_specs `
+          ${{ matrix.script }}
+    
+    - name: 📊 Display build info
+      run: |
+        echo "Build completed for: ${{ matrix.name }}"
+        echo "Output file: dist/${{ matrix.output }}.exe"
+        dir dist\${{ matrix.output }}.exe
+    
+    - name: ✅ Verify executable
+      run: |
+        if (Test-Path "dist\${{ matrix.output }}.exe") {
+          Write-Host "✅ ${{ matrix.output }}.exe created successfully"
+          $size = (Get-Item "dist\${{ matrix.output }}.exe").length / 1MB
+          Write-Host "📊 File size: $($size.ToString('F1')) MB"
+        } else {
+          Write-Host "❌ Build failed - executable not found"
+          exit 1
+        }
+    
+    - name: 📤 Upload artifact - ${{ matrix.name }}
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ matrix.output }}
+        path: dist/${{ matrix.output }}.exe
+        retention-days: 60
+    
+    - name: 📤 Upload build logs
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: build-logs-${{ matrix.output }}
+        path: build_specs/
+        retention-days: 30
+
+  create-release:
+    needs: build-windows-exe
+    runs-on: windows-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+    - name: 📥 Download all artifacts
+      uses: actions/download-artifact@v3
+      with:
+        path: releases
+    
+    - name: 📋 List all executables
+      run: |
+        echo "✅ All executables ready:"
+        dir /s releases\*.exe
+    
+    - name: 🎉 Create Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: |
+          releases/PDFSplitter_Responsive/PDFSplitter_Responsive.exe
+          releases/PDFSplitter_Original/PDFSplitter_Original.exe
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  notify-completion:
+    needs: build-windows-exe
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: 📢 Build Status
+      run: |
+        echo "✅ Windows .exe Build Pipeline Complete"
+        echo ""
+        echo "📦 Artifacts:"
+        echo "  • PDFSplitter_Responsive.exe"
+        echo "  • PDFSplitter_Original.exe"
+        echo ""
+        echo "📥 Download from: Actions → Artifacts"
+        echo "🖥️ System: Windows Latest (Windows Server 2022)"
+        echo "🐍 Python: ${{ env.PYTHON_VERSION }}"
+        echo "⏱️ Build Time: ~2-3 minutes"
